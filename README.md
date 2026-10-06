@@ -49,7 +49,3 @@ flutter build web
 ```
 
 Tests cover collisions for all vehicle types, log support/drift, water, boundaries, scoring/titles, bonus collection, pause/timer completion, persistence, login/logout and screen navigation.
-
-## Assignment packaging
-
-Include `lib/`, `assets/`, and `pubspec.yaml` in a ZIP. Rename with your actual student numbers: `FroggyCrosser_NRP1_NRP2.zip` (use the naming expected by your lecturer for solo work). Review and understand the code before your demo. No submission is performed by this project.
