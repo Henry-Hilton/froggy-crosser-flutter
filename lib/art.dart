@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'game_engine.dart';
 
+/// Shared palette for the screens and procedurally drawn artwork.
 const ink = Color(0xff142a24);
 const lime = Color(0xffcefa72);
 const cream = Color(0xfff5f4e8);
@@ -15,6 +16,7 @@ class BoardPainter extends CustomPainter {
   final bool decorative;
   @override
   void paint(Canvas canvas, Size size) {
+    // Convert the engine's tile coordinates to the available canvas size.
     final w = size.width / 9, h = size.height / 9;
     final p = Paint();
     void box(Rect r, Color color, [double radius = 0]) {
@@ -22,6 +24,7 @@ class BoardPainter extends CustomPainter {
       canvas.drawRRect(RRect.fromRectAndRadius(r, Radius.circular(radius)), p);
     }
 
+    // Paint terrain first so moving objects and the frog appear above it.
     for (int row = 0; row < 9; row++) {
       final water = row >= 1 && row <= 3;
       final road = row >= 5 && row <= 7;
@@ -87,6 +90,7 @@ class BoardPainter extends CustomPainter {
         p,
       );
     }
+    // Render the same positions and widths used by collision detection.
     for (final lane in game.lanes) {
       for (final o in lane.objects) {
         final r = Rect.fromLTWH(
@@ -139,6 +143,7 @@ class BoardPainter extends CustomPainter {
             );
           }
           box(r, color, 6);
+          // Place the windshield toward the direction of travel.
           final front = lane.speed > 0
               ? r.right - r.width * .34
               : r.left + r.width * .12;
@@ -187,6 +192,7 @@ class BoardPainter extends CustomPainter {
     );
   }
 
+  /// Draws the reusable frog around [center], scaled from a 50-unit design.
   static void drawFrog(
     Canvas c,
     Offset center,
@@ -235,9 +241,11 @@ class BoardPainter extends CustomPainter {
   }
 
   @override
+  // The engine mutates in place, so delegate identity cannot detect movement.
   bool shouldRepaint(covariant BoardPainter oldDelegate) => true;
 }
 
+/// Static frog illustration reused by menus, pause overlays, and results.
 class FrogArt extends StatelessWidget {
   const FrogArt({super.key, this.size = 100});
   final double size;

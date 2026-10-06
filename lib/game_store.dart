@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'game_engine.dart';
 
+/// One player's saved personal best and its associated crossing count.
 class ScoreEntry {
   const ScoreEntry(this.name, this.score, this.crossings);
   final String name;
@@ -15,20 +16,25 @@ class ScoreEntry {
   };
 }
 
+/// Device-local player identity and leaderboard backed by SharedPreferences.
 class GameStore {
   GameStore(this.prefs);
   final SharedPreferences prefs;
   String? get username => prefs.getString('username');
+
+  /// Stores a trimmed, case-sensitive player name; no online account is used.
   Future<void> login(String name) async {
     if (!await prefs.setString('username', name.trim())) {
       throw StateError('Could not save player');
     }
   }
 
+  /// Removes the active name while retaining every saved personal best.
   Future<void> logout() async {
     if (!await prefs.remove('username')) throw StateError('Could not sign out');
   }
 
+  /// Decodes scores, ranked highest first with alphabetical name tie breaks.
   List<ScoreEntry> get scores {
     try {
       final raw = jsonDecode(prefs.getString('scores') ?? '[]') as List;
@@ -47,13 +53,19 @@ class GameStore {
       });
       return result;
     } catch (_) {
+      // Treat malformed stored data as an empty leaderboard so screens can load.
       return [];
     }
   }
 
+  /// Returns the player's highest stored score, or zero if none exists.
   int best(String name) => scores
       .where((s) => s.name == name)
       .fold(0, (a, b) => a > b.score ? a : b.score);
+
+  /// Keeps one best entry per name and persists it as JSON.
+  /// Returns true for a newly saved positive best, false for ties/lower scores
+  /// or a saved zero score. A storage failure throws [StateError].
   Future<bool> save(String name, RoundResult result) async {
     final all = scores;
     final existing = all.where((s) => s.name == name);

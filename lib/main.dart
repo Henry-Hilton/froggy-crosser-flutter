@@ -9,6 +9,7 @@ import 'art.dart';
 import 'game_engine.dart';
 import 'game_store.dart';
 
+/// Initializes platform services and local storage before building the app.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -16,6 +17,7 @@ Future<void> main() async {
   runApp(FroggyApp(store: store));
 }
 
+/// App theme and initial route, selected from the locally saved player name.
 class FroggyApp extends StatelessWidget {
   const FroggyApp({super.key, required this.store});
   final GameStore store;
@@ -85,13 +87,18 @@ class FroggyApp extends StatelessWidget {
   );
 }
 
+/// Pushes a screen while preserving the current navigation history.
 void openScreen(BuildContext context, Widget screen) =>
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+
+/// Replaces the entire route stack after login, logout, or return to the menu.
 void resetTo(BuildContext context, Widget screen) => Navigator.of(context)
     .pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => screen),
       (_) => false,
     );
+
+/// Displays a consistent user-facing message when a local write fails.
 void showError(BuildContext context, Object error) =>
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -99,6 +106,7 @@ void showError(BuildContext context, Object error) =>
       ),
     );
 
+/// Scrollable content with safe insets and a readable width on large screens.
 class PageBody extends StatelessWidget {
   const PageBody({super.key, required this.children});
   final List<Widget> children;
@@ -113,6 +121,7 @@ class PageBody extends StatelessWidget {
   );
 }
 
+/// Small, spaced label used above headings and game statistics.
 class Eyebrow extends StatelessWidget {
   const Eyebrow(this.text, {super.key});
   final String text;
@@ -128,6 +137,7 @@ class Eyebrow extends StatelessWidget {
   );
 }
 
+/// Collects and validates a device-local player name.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.store});
   final GameStore store;
@@ -145,6 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // Disable repeat submissions while saving, then navigate only if mounted.
   Future<void> login() async {
     if (busy || !form.currentState!.validate()) return;
     setState(() => busy = true);
@@ -216,9 +227,12 @@ class _LoginScreenState extends State<LoginScreen> {
   );
 }
 
+/// Main menu with instructions, personal best, leaderboard, and sign-out.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.store});
   final GameStore store;
+
+  /// Starts a round after the player accepts the instructions dialog.
   Future<void> play(BuildContext context) async {
     final start = await showDialog<bool>(
       context: context,
@@ -375,9 +389,12 @@ class HomeScreen extends StatelessWidget {
   );
 }
 
+/// Connects the simulation to frame ticks, lifecycle events, and player input.
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key, required this.store, this.engine});
   final GameStore store;
+
+  /// Optional engine injection for controlled gameplay and widget tests.
   final GameEngine? engine;
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -387,8 +404,10 @@ class _GameScreenState extends State<GameScreen>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final GameEngine game;
   late final Ticker ticker;
+  // Ticker timestamps are cumulative; retain the previous value for frame deltas.
   Duration? last;
   Offset swipe = Offset.zero;
+  // Prevent further round updates while saving and opening the result screen.
   bool ending = false;
   final focus = FocusNode();
   @override
@@ -408,6 +427,7 @@ class _GameScreenState extends State<GameScreen>
   }
 
   @override
+  // Backgrounding pauses play; resuming still requires the Resume control.
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed && !ending) {
       setState(() => game.paused = true);
@@ -416,6 +436,7 @@ class _GameScreenState extends State<GameScreen>
     last = null;
   }
 
+  /// Converts frame deltas to seconds and rebuilds after simulation updates.
   void tick(Duration now) {
     final previous = last;
     last = now;
@@ -424,6 +445,7 @@ class _GameScreenState extends State<GameScreen>
     if (game.finished) finish();
   }
 
+  /// Stops the round and attempts persistence before displaying final totals.
   Future<void> finish() async {
     ending = true;
     ticker.stop();
@@ -448,10 +470,12 @@ class _GameScreenState extends State<GameScreen>
     }
   }
 
+  // All input methods share the engine's movement and collision rules.
   void move(int dx, int dy) {
     setState(() => game.move(dx, dy));
   }
 
+  /// Toggles active play and discards stale timing before restarting the ticker.
   void pause() {
     setState(() {
       game.paused = !game.paused;
@@ -464,6 +488,7 @@ class _GameScreenState extends State<GameScreen>
     });
   }
 
+  /// Freezes play during confirmation; unfinished rounds are never saved.
   Future<void> exit() async {
     if (ending) return;
     game.paused = true;
@@ -600,6 +625,7 @@ class _GameScreenState extends State<GameScreen>
                               behavior: HitTestBehavior.opaque,
                               onPanStart: (_) => swipe = Offset.zero,
                               onPanUpdate: (d) => swipe += d.delta,
+                              // One swipe produces one hop along its dominant axis.
                               onPanEnd: (_) {
                                 if (swipe.distance < 14) return;
                                 if (swipe.dx.abs() > swipe.dy.abs()) {
@@ -720,6 +746,7 @@ class _GameScreenState extends State<GameScreen>
   );
 }
 
+/// Round summary with replay navigation and a retry for failed score writes.
 class ResultScreen extends StatefulWidget {
   const ResultScreen({
     super.key,
@@ -864,6 +891,7 @@ class _ResultScreenState extends State<ResultScreen> {
   );
 }
 
+/// Shows the top three distinct players from the device-local leaderboard.
 class ScoresScreen extends StatelessWidget {
   const ScoresScreen({super.key, required this.store});
   final GameStore store;
